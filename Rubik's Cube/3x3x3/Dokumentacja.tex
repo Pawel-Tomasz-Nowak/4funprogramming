@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage[left=5px,top=5px]{geometry}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+
+
+\begin{document}
+Zacznijmy od zaprojektowania  klasy reprezentującej jedną ściankę kostki 3x3x3. Wiemy, że składa sie ona z 3x3 = 9 fragmentów: czterech dwukolorowych klocków, czterech trzyelementowych klocków oraz jednego, centralnego, jednokolorowego klocka. 
+Centralny klocek określa kolor (kolor pełni funkcję atrybutu rozróżniającego) ścianki.
+Dla konwencji przyjmijmy, następujące kodowanie kolorów:
+
+\begin{description}
+\item[Czerwony] \textcolor{red}{1}
+\item[Pomarańczowy] \textcolor{red}{2}
+\item[Zielony] \textcolor{green}{3}
+\item[Niebieski] \textcolor{green}{4}
+\item[Biały] \textcolor{blue}{5}
+\item[Żółty] \textcolor{blue}{6}.
+\end{description}
+Pary (Czerwony, pomarańczowy), (Zielony, Niebieski),(Biały,Żółty) są naturalnymi parami.
+Można znaleźć fajny wzór, który pozwoli nam znaleźć partnera kolorowego dla danego koloru. Otóż dla numeru n partnerem jest:
+
+\begin{equation}
+Partner(n) = \begin{cases}
+n+1, \text{gdy n nieparzyste} \\
+n-1, \text{gdy n parzyste}
+
+\end{cases}
+\end{equation}
+
+
+Położenie ścianki można opisać za pomocą sześciu liter: F (Front), B (Back), L (Left), R (Right),D (Down), U (Up), które zakodujemy podobnie:
+\begin{description}
+\item[F] \textcolor{red}{1}
+\item[B] \textcolor{red}{2}
+\item[L] \textcolor{green}{3}
+\item[R] \textcolor{green}{4}
+\item[D] \textcolor{blue}{5}
+\item[U] \textcolor{blue}{6}. \\
+\end{description}
+
+\end{document}
