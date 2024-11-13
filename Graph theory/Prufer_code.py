@@ -48,7 +48,7 @@ class Tree():
         None
 
         """
-        self.labels = range(n) if labels is None else labels #Define the attribute `labels` based on whether labels is None or a non-empty list.
+        self.labels = range(1,n+1) if labels is None else labels #Define the attribute `labels` based on whether labels is None or a non-empty list.
         self.nodes = []
 
         for label in self.labels:
@@ -84,22 +84,22 @@ class Prufer_Code():
         resulted_Tree : Tree = Tree(n ) #Define the resulted tree.
     
 
-        l1: list[int] = list(range(n)) #A list of consecutive natural numbers 1, 2, .., n.
+        l1: list[int] = list(range(1,n+1)) #A list of consecutive natural numbers 1, 2, .., (n).
 
-        label2node: dict[int, Node] = {i: resulted_Tree.nodes[i] for i in l1} #Node converter. Given any natural number, it yields an associated node.
+        label2node: dict[int, Node] = {i: resulted_Tree.nodes[i-1] for i in l1} #Node converter. Given any natural number, it yields an associated node.
 
         for i in range(n-2):
             number_not_in_l1:list[int] = setdiff1d(l1, code[i:]) #Find all the numbers in l1 which aren't present in the code.
             min_label: int = min(number_not_in_l1) #From all the found numbers from above, find the minimum.
 
-            edge_end : Node = label2node[i] #Get the first node.
+            edge_end : Node = label2node[code[i]] #Get the first node.
             edge_start : Node = label2node[min_label] #Get the second node.
-
+        
             #Now, create an edge ei = {edge_end, edge_start} (it's undirected).
             edge_start.neighbours.append(edge_end) #to do: Note that changing the `neighbours` attribute of the edge_start node forces us
             edge_end.neighbours.append(edge_start)  #to change the same attribute of the edge_end node. Consider implementing getter and setter for this attribute.
 
-            l1.pop(min_label)
+            l1.remove(min_label)
 
 
         #There are two remaining elements of l1 list. These are the last nodes we have to connect.
@@ -107,13 +107,22 @@ class Prufer_Code():
         edge_end:Node = label2node[l1[1]]
 
         edge_start.neighbours.append(edge_end)
-        edge_start.neighbours.append(edge_start)
+        edge_end.neighbours.append(edge_start)
 
         l1.pop()
         l1.pop()
+
+        return resulted_Tree
     
 
 
 Kod = Prufer_Code()
-Kod.decode(code = [5,2,4,1])
+
+for i in range(6):
+    
+    drzewo = Kod.decode(code = [5,2,4,1])
+    for neighbour in drzewo.nodes[i].neighbours:
+        print(drzewo.nodes[i].label, neighbour.label)
+    print("--"*30)
+
 
