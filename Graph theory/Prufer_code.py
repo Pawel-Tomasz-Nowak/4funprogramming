@@ -1,4 +1,4 @@
-from numpy import setdiff1d, min
+import numpy as np
 
 class Node():
 
@@ -25,54 +25,103 @@ class Node():
         self.neighbours: list[Node] = []
 
     
+    def add_neighbour(self, neighbour):
+        """The method adds `neigbour` node to the list of neighbours of the original node.
+        Additionaly, the original is added to the list of `neigbours`'s neighbours.
+
+        Parameters:
+        ---------
+        neighbour : Node
+        Other node , which is a neighbour of the original Node.
+
+        """
+        if issubclass(Node, type(neighbour)):
+            self.neighbours.append(neighbour) #Add other node to the original node's neighbours.
+            neighbour.neighbours.append(self) #And add the original 
+        else:
+            raise TypeError("The neigbours argument isn't of Node class")
         
+
 
 class Tree():
     """A class representing a Tree in graph theory"""
 
-    def __init__(self, n:int, labels:list[int] | None = None) -> None:
-        """Constructor of the tree. The number of nodes is given my `n` argument. 
-        The nodes are labels either by successive natural numbers from 1 to n (when encoding Prufer's code) or customly. In the latter, 
-        the unique labels are provided by `labels` list.
+    def __init__(self, n:int, nodes:list[Node] | None = None) -> None:
+        """Constructor of the tree. The nodes are either passed explicitly or defined on the fly with labels being successive natural numbers
 
         Parameters:
         ---------
         n : int
         total number of nodes of the tree.
 
-        labels : list[int] | None
-        A custom labels of the nodes (specify this argument only when coding the tree to Prufer's code).
+        nodes : list[Node] | None
+        A list of nodes.
 
         Returns:
         ---------
         None
 
         """
-        self.labels = range(1,n+1) if labels is None else labels #Define the attribute `labels` based on whether labels is None or a non-empty list.
-        self.nodes = []
+        self.label2node:dict[int, Node] = {} #A label2node converter.
+        self.nodes:list[Node] | None = nodes #List of all nodes. 
+        self.n:int = n
 
-        for label in self.labels:
-            self.nodes.append(Node(label))
+        if nodes is None:
+            for label in range(1, n+1):
+                self.label2node[label] = Node(label)
+        else:
+            for node in self.nodes:
+                self.label2node[node.label] = node
+
+    
+
+    def find_adjacency_matrix(self) -> None:
+        """The method for finding the adjecancy matrix of the tree. The resulted matrix is stored as an attribute of the tree.
+
+        Parameters:
+        ---------
+        None
+
+        Returns:
+        ---------
+        None
+
+        """
+        self.adj_mat:np.ndarray = np.zeros(shape = [self.n, self.n], dtype = np.int8) #The entries of matrix are by default zero.
+
+        for node in self.nodes: #Iterate over each node.
+            for neighbour in node.neighbours: #Find all the neigbours of the node.
+                self.adj_mat[node.label-1, neighbour.label-1] = 1
 
 
 
-class Prufer_Code():
+class Prufer_Sequence():
     """A class representing the Prufer_Code. It is a class which only implements two new methods:
     `decode` and `encode`.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Constructor of the Prufer_code. It does nothing. All important arguments are passed either to `decode` or `encode` method
+
+        Parameters:
+        ---------
+        None
+
+        Returns:
+        ---------
+        None
+
         """
 
         pass
 
-    def decode(self, code:list[int]) -> Tree:
+
+    def decode(self, code:np.ndarray[int]) -> Tree:
         """A method for decoding the Prufer's code. This results in a Tree with (len(code)+2) nodes.
 
         Parameters:
         ---------
-        code : list[int]
+        code : np.ndarray[int]
         Prufer's code.
 
         Returns:
@@ -84,45 +133,72 @@ class Prufer_Code():
         resulted_Tree : Tree = Tree(n ) #Define the resulted tree.
     
 
-        l1: list[int] = list(range(1,n+1)) #A list of consecutive natural numbers 1, 2, .., (n).
+        l1: np.ndarray[int] = np.array(range(1,n+1)) #A list of consecutive natural numbers 1, 2, .., (n).
 
-        label2node: dict[int, Node] = {i: resulted_Tree.nodes[i-1] for i in l1} #Node converter. Given any natural number, it yields an associated node.
+        l1_mask : np.ndarray[True] = np.full(n, True) #Define a boolean mask for l1 list indicating what labels have already been used.
+        code_mask : np.ndarray[True] = np.full(n-2, True) #Define the very same boolean mask for code.
+
+        label2node: dict[int, Node] = resulted_Tree.label2node
+
 
         for i in range(n-2):
-            number_not_in_l1:list[int] = setdiff1d(l1, code[i:]) #Find all the numbers in l1 which aren't present in the code.
-            min_label: int = min(number_not_in_l1) #From all the found numbers from above, find the minimum.
+            number_not_in_l1: np.ndarray[int] = np.setdiff1d(l1[l1_mask], code[code_mask]) #Find all the numbers in l1 which aren't present in the code.
+            min_label:int = np.min(number_not_in_l1) #From all the found numbers from above, find the minimum.
 
             edge_end : Node = label2node[code[i]] #Get the first node.
             edge_start : Node = label2node[min_label] #Get the second node.
         
             #Now, create an edge ei = {edge_end, edge_start} (it's undirected).
-            edge_start.neighbours.append(edge_end) #to do: Note that changing the `neighbours` attribute of the edge_start node forces us
-            edge_end.neighbours.append(edge_start)  #to change the same attribute of the edge_end node. Consider implementing getter and setter for this attribute.
+            edge_start.neighbours.append(edge_end)
 
-            l1.remove(min_label)
-
+            l1_mask[min_label-1] = False #Exclude the i-th elemenent of l1 for further iteration.
+            code[i] = False #Exclude the i-th elemenent for further iteration.
 
         #There are two remaining elements of l1 list. These are the last nodes we have to connect.
-        edge_start:Node = label2node[l1[0]]
-        edge_end:Node = label2node[l1[1]]
-
-        edge_start.neighbours.append(edge_end)
-        edge_end.neighbours.append(edge_start)
-
-        l1.pop()
-        l1.pop()
+        #Find these two True values.
+        a1, a2 = np.nonzero(l1_mask)[0]
+        
+        label2node[a1].neighbours.append(label2node[a2])
 
         return resulted_Tree
     
 
 
-Kod = Prufer_Code()
+    def encode(self, tree: Tree) -> np.ndarray[int]:
+        """The methods encodes the n-vertix tree into a (n-2) sequence of {1,2,.., n}. (Prufer's sequence).
 
-for i in range(6):
+        Parameters:
+        ---------
+        tree : Tree
+        An instance of a Tree class.
+
+        Returns:
+        --------
+        code : np.ndarray
+        A Prufer's sequence of given `tree`.
+
+        """
+        code : list[int] = [] #Define the resulted Prufer's sequence.
+        n: int = tree.n #The total number of nodes.
+
+        tree.find_adjacency_matrix() #Find the adjecancy matrix of the tree.
+        adj_mat = tree.adj_mat.copy() #Create a deep copy of the matrix.
     
-    drzewo = Kod.decode(code = [5,2,4,1])
-    for neighbour in drzewo.nodes[i].neighbours:
-        print(drzewo.nodes[i].label, neighbour.label)
-    print("--"*30)
+        eliminated_nodes_mask: np.ndarray = np.full(n, False) # array[i] = True iff node with label (i+1) has been eliminated.
+        
+        for _ in range(n-2):
+            #Find all the nodes of one-degree among the uneliminated nodes.
+            one_degree_nodes: np.ndarray = np.nonzero((np.apply_along_axis(lambda v: np.sum(v) == 1,1,adj_mat)) & (~eliminated_nodes_mask))
 
+            min_one_degree_node_label: int = np.min(one_degree_nodes) + 1 #The minimum label of all one-degree nodes.
+            one_neigbour:Node = tree.label2node[min_one_degree_node_label].neighbours[0] #Find the only neighbour of minimum-one-degree node.
+        
 
+            eliminated_nodes_mask[min_one_degree_node_label-1] = True #Eliminate the minimum one-degree node.
+
+            adj_mat[min_one_degree_node_label-1, one_neigbour.label-1] -= 1 #Decremenet the appropriate entry of the adj. matrix.
+            adj_mat[one_neigbour.label-1, min_one_degree_node_label-1] -= 1  #Decremenet the appropriate entry of the adj. matrix.
+
+            code.append(one_neigbour.label) #Add the label of the minimum leaf's label
+        
+        return np.array(code)
